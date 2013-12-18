@@ -1,20 +1,29 @@
 package xray2.classifier.train;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.wltea.analyzer.IKSegmentation;
 import org.wltea.analyzer.Lexeme;
+
+import xray2.util.Util;
 
 
 
@@ -34,24 +43,156 @@ public class RocchioClassifier {
 	protected void build(String category){
 		System.out.println("build Rocchio start");
 		
-		if (this.vocabularyIndex == null) {
-			this.loadVocabularyByCategory(category);
-		}
-		String generalDirPath = MetaData.getGeneralPath();
-		String filePath = MetaData.getPart1PathByCategory(category);
-		
-		positiveVector = this.loadDir(category, filePath);
-		negativeVector = this.loadDir(category, generalDirPath);
+		if(!this.loadData(category)){
+			if (this.vocabularyIndex == null) {
+				this.loadVocabularyByCategory(category);
+			}
+			String generalDirPath = MetaData.getGeneralPath();
+			String filePath = MetaData.getPart1PathByCategory(category);
+			
+			positiveVector = this.loadDir(category, filePath);
+			negativeVector = this.loadDir(category, generalDirPath);
 
-		for(int i = 0;i < positiveVector.length;i++){
-			positiveVector[i] = (positiveVector[i])/MetaData.dataSetSize;
-			negativeVector[i] = (negativeVector[i])/MetaData.dataSetSize;
-		}
+			for(int i = 0;i < positiveVector.length;i++){
+				positiveVector[i] = (positiveVector[i])/MetaData.dataSetSize;
+				negativeVector[i] = (negativeVector[i])/MetaData.dataSetSize;
+			}
 
-		positiveVector = this.arrayProduct(positiveVector, weightVector);
-		negativeVector = this.arrayProduct(negativeVector, weightVector);
+			positiveVector = this.arrayProduct(positiveVector, weightVector);
+			negativeVector = this.arrayProduct(negativeVector, weightVector);
+			
+			System.out.println("build Rocchio ok!");
+		}
 		
-		System.out.println("build Rocchio ok!");
+		this.dataPersistence(category);
+	}
+	
+	
+	protected void dataPersistence(String category){
+		String posiPath = MetaData.posiDocVectorDir;
+		String negaPath = MetaData.negaDocVectorDir;
+		
+		String posiFileName = posiPath + "/" + category + "_posi";
+		TestFile2.createDirAndFile(posiFileName);
+		
+		File f = new File(posiFileName);
+
+		
+		BufferedWriter bw;
+		try {
+			bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(f)));
+			
+			for(double d : positiveVector){
+				bw.write(Util.doubleToString(d));
+				bw.newLine();
+			}
+			
+			bw.flush();
+			bw.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String negaFileName = negaPath + "/" + category + "_nega";
+		TestFile2.createDirAndFile(negaFileName);
+		
+		File fNega = new File(negaFileName);
+		
+		BufferedWriter bwN;
+		try {
+			bwN = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fNega)));
+			
+			for(double d : negativeVector){
+				bwN.write(Util.doubleToString(d));
+				bwN.newLine();
+			}
+			
+			bwN.flush();
+			bwN.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+	}
+	
+	protected boolean loadData(String category){
+		String posiPath = MetaData.posiDocVectorDir;
+		String negaPath = MetaData.negaDocVectorDir;
+		
+		String posiFileName = posiPath + "/" + category + "_posi";
+		/*TestFile2.createDirAndFile(posiFileName);*/
+		
+		File f = new File(posiFileName);
+		if(!f.exists()) return false;
+		BufferedReader br;
+		try {
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+			
+			List<Double> listP = new ArrayList<Double>();
+			String str = br.readLine();
+			
+			while(str != null){
+				if(str.length() > 0){
+					double value = Double.parseDouble(str);
+					listP.add(value);
+					str = br.readLine();	
+				}
+			}
+			positiveVector = new double[listP.size()];
+			for(int index = 0;index < positiveVector.length;index++){
+				positiveVector[index] = listP.get(index);
+			}
+			
+			
+			
+			br.close();
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		String negaFileName = negaPath + "/" + category + "_nega";
+		/*TestFile2.createDirAndFile(negaFileName);*/
+		
+		File fNega = new File(negaFileName);
+		if(!fNega.exists()) return false;
+		BufferedReader brN;
+		try {
+			brN = new BufferedReader(new InputStreamReader(new FileInputStream(fNega)));
+			
+			List<Double> listN = new ArrayList<Double>();
+			String str = brN.readLine();
+			
+			while(str != null){
+				if(str.length() > 0){
+					double value = Double.parseDouble(str);
+					listN.add(value);
+					str = brN.readLine();	
+				}
+			}
+			negativeVector = new double[listN.size()];
+			for(int index = 0;index < negativeVector.length;index++){
+				negativeVector[index] = listN.get(index);
+			}
+			brN.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+		
+		this.loadVocabularyByCategory(category);
+		
+		System.out.println("data loaded");
+		return true;
+		
+		
 	}
 	
 	public double arrayDotProduct(double[] r1,double[] r2){

@@ -9,12 +9,17 @@ public class MetaData {
 	
 	public static int xxTermSize = 2000;
 	
+	public static String posiDocVectorDir = "posiDocVector";
+	public static String negaDocVectorDir = "negaDocVector";
+	
 	protected static Map<String,String> fileDirCategoryMap = new HashMap<String,String>();
 	
 	public static int dataSetSize = 4000;
 	protected static String generalDir = targetDataDir + "\\General" + MetaData.dataSetSize;;
 	
 	protected static String categoryBaseDir = targetDataDir;
+	
+	
 	
 	protected static void initfileDirCategoryMap(){
 		if(fileDirCategoryMap.size() > 0) {return;}

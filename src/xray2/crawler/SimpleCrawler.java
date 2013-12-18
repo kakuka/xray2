@@ -83,8 +83,8 @@ public class SimpleCrawler implements Runnable{
 	public static void main(String[] args){
 		AddURLs adder = new AddURLs();
 		GetNewURL getter = new GetNewURL();
-		Lord lord = new Lord("汽车");
-		for(int i = 0; i < 15;i ++){
+		Lord lord = new Lord("军事");
+		for(int i = 0; i < 20;i ++){
 			SimpleCrawler c = new SimpleCrawler(adder,getter,lord);
 			Thread t = new Thread(c);
 			t.start();
